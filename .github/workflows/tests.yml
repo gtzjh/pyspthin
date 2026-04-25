@@ -16,8 +16,6 @@ jobs:
   test:
     name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
-    env:
-      MPLCONFIGDIR: ${{ runner.temp }}/matplotlib
 
     strategy:
       fail-fast: false
@@ -37,6 +35,11 @@ jobs:
           cache-dependency-path: |
             pyproject.toml
             requirements*.in
+
+      - name: Configure matplotlib cache
+        run: |
+          mkdir -p "$RUNNER_TEMP/matplotlib"
+          echo "MPLCONFIGDIR=$RUNNER_TEMP/matplotlib" >> "$GITHUB_ENV"
 
       - name: Install package and test dependencies
         run: |
