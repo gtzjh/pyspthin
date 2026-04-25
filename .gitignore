@@ -4,6 +4,11 @@
 .RDataTmp
 .DS_Store
 
+# Planning-with-files generated working notes
+task_plan.md
+findings.md
+progress.md
+
 # Python bytecode and caches
 __pycache__/
 *.py[cod]
