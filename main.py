@@ -9,7 +9,6 @@ import pandas as pd
 
 from pyspthin import plot_thin, summary_thin, thin, thin_many
 
-
 matplotlib.use("Agg")
 
 

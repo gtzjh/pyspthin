@@ -3,7 +3,6 @@ from __future__ import annotations
 import unittest
 
 from pyspthin import thin
-
 from tests.test_support import load_fixture
 
 

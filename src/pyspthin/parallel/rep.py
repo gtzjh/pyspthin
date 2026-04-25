@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 import multiprocessing as mp
 import warnings
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 from pyspthin.algorithm.runner import ReplicateExecution, execute_replicate
 from pyspthin.graph.conflict_graph import ConflictGraph
@@ -32,7 +32,11 @@ def run_replicates(
             ]
             return [future.result() for future in futures]
     except Exception as exc:  # pragma: no cover - exercised only on platform-specific failures
-        warnings.warn(f"Falling back to threaded replicate execution because process parallelism failed: {exc}")
+        warnings.warn(
+            "Falling back to threaded replicate execution because process parallelism "
+            f"failed: {exc}",
+            stacklevel=2,
+        )
         with ThreadPoolExecutor(max_workers=n_jobs) as executor:
             futures = [
                 executor.submit(execute_replicate, graph, seed, index)

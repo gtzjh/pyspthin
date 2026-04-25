@@ -7,7 +7,9 @@ from pathlib import Path
 from pyspthin.models import ThinResult
 
 
-def write_best_replicates_to_csv(result: ThinResult, out_dir: Path, out_base: str, max_files: int) -> list[Path]:
+def write_best_replicates_to_csv(
+    result: ThinResult, out_dir: Path, out_base: str, max_files: int
+) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     max_retained = result.best_replicate.retained_count
     best_replicates = [rep for rep in result.replicates if rep.retained_count == max_retained]

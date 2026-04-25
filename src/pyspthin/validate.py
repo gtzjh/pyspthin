@@ -3,12 +3,35 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import warnings
 from typing import Any
 
 import pandas as pd
 
+from pyspthin.columns import PYSPTHIN_RECORD_ID_COL
 from pyspthin.config import ThinConfig
+
+
+@dataclass(frozen=True, slots=True)
+class ValidationIssue:
+    """One row-level validation issue."""
+
+    row: object
+    field: str
+    value: object
+    reason: str
+
+    def format(self) -> str:
+        return f"row {self.row}, field {self.field}, value {self.value!r}: {self.reason}"
+
+
+class PyspthinValidationError(ValueError):
+    """Validation error with row-level diagnostics."""
+
+    def __init__(self, issues: list[ValidationIssue]) -> None:
+        self.issues = issues
+        lines = [f"Validation failed with {len(issues)} error(s):"]
+        lines.extend(issue.format() for issue in issues)
+        super().__init__("\n".join(lines))
 
 
 @dataclass(slots=True)
@@ -31,22 +54,15 @@ def _coerce_dataframe(data: Any) -> pd.DataFrame:
     return pd.DataFrame(data)
 
 
-def _apply_missing_policy(df: pd.DataFrame, required_cols: list[str], missing_policy: str) -> tuple[pd.DataFrame, list[str]]:
-    warnings_list: list[str] = []
-    missing_mask = df[required_cols].isna().any(axis=1)
-    if not bool(missing_mask.any()):
-        return df, warnings_list
-
-    if missing_policy == "error":
-        raise ValueError("Required columns contain missing values.")
-
-    dropped = int(missing_mask.sum())
-    warnings_list.append(f"Dropped {dropped} row(s) with missing required values.")
-    warnings.warn(warnings_list[-1], stacklevel=2)
-    return df.loc[~missing_mask].copy(), warnings_list
+def _is_missing(value: object) -> bool:
+    if value is None:
+        return True
+    return bool(pd.isna(value))  # type: ignore[call-overload]
 
 
-def _prepare_base_dataframe(data: Any, config: ThinConfig) -> tuple[pd.DataFrame, list[str], list[str]]:
+def _prepare_base_dataframe(
+    data: Any, config: ThinConfig
+) -> tuple[pd.DataFrame, list[str], list[str]]:
     df = _coerce_dataframe(data)
     if df.empty:
         raise ValueError("Input data is empty.")
@@ -60,31 +76,85 @@ def _prepare_base_dataframe(data: Any, config: ThinConfig) -> tuple[pd.DataFrame
     if missing_cols:
         raise ValueError(f"Missing required column(s): {', '.join(missing_cols)}")
 
-    df[config.long_col] = pd.to_numeric(df[config.long_col], errors="coerce")
-    df[config.lat_col] = pd.to_numeric(df[config.lat_col], errors="coerce")
+    issues: list[ValidationIssue] = []
+    numeric_columns = {
+        config.long_col: (pd.to_numeric(df[config.long_col], errors="coerce"), -180.0, 180.0),
+        config.lat_col: (pd.to_numeric(df[config.lat_col], errors="coerce"), -90.0, 90.0),
+    }
 
-    df, warning_messages = _apply_missing_policy(df, required_cols, config.missing_policy)
-    if df.empty:
-        raise ValueError("No rows remain after applying the missing-value policy.")
+    for column, (coerced_values, minimum, maximum) in numeric_columns.items():
+        for row, raw_value, coerced_value in zip(
+            df.index,
+            df[column],
+            coerced_values,
+            strict=True,
+        ):
+            if _is_missing(raw_value):
+                issues.append(ValidationIssue(row, column, raw_value, "is missing"))
+            elif _is_missing(coerced_value):
+                issues.append(ValidationIssue(row, column, raw_value, "must be numeric"))
+            elif not minimum <= float(coerced_value) <= maximum:
+                issues.append(
+                    ValidationIssue(
+                        row,
+                        column,
+                        raw_value,
+                        f"must be within [{minimum:g}, {maximum:g}]",
+                    )
+                )
 
-    if not df[config.long_col].between(-180.0, 180.0).all():
-        raise ValueError("Longitude values must lie within [-180, 180].")
-    if not df[config.lat_col].between(-90.0, 90.0).all():
-        raise ValueError("Latitude values must lie within [-90, 90].")
+    for row, raw_value in df[config.species_col].items():
+        if _is_missing(raw_value):
+            issues.append(ValidationIssue(row, config.species_col, raw_value, "is missing"))
+        elif str(raw_value).strip() == "":
+            issues.append(ValidationIssue(row, config.species_col, raw_value, "must be non-empty"))
+
+    if issues:
+        raise PyspthinValidationError(issues)
+
+    df[config.long_col] = numeric_columns[config.long_col][0].astype(float)
+    df[config.lat_col] = numeric_columns[config.lat_col][0].astype(float)
 
     df[config.species_col] = df[config.species_col].astype(str)
-    return df.reset_index(drop=True), original_columns, warning_messages
+    return df, original_columns, []
+
+
+def _valid_auto_record_id_source(series: pd.Series) -> bool:
+    if series.isna().any():
+        return False
+    as_strings = series.astype(str)
+    if as_strings.str.strip().eq("").any():
+        return False
+    return not bool(as_strings.duplicated().any())
 
 
 def _attach_record_id(df: pd.DataFrame, config: ThinConfig) -> tuple[pd.DataFrame, str]:
     if config.record_id_col is not None:
-        record_ids = df[config.record_id_col].astype(str)
+        raw_record_ids = df[config.record_id_col]
+        issues: list[ValidationIssue] = []
+        for row, raw_value in raw_record_ids.items():
+            if _is_missing(raw_value):
+                issues.append(ValidationIssue(row, config.record_id_col, raw_value, "is missing"))
+            elif str(raw_value).strip() == "":
+                issues.append(
+                    ValidationIssue(row, config.record_id_col, raw_value, "must be non-empty")
+                )
+
+        if not issues:
+            record_ids = raw_record_ids.astype(str)
+            for row, value in record_ids[record_ids.duplicated()].items():
+                issues.append(ValidationIssue(row, config.record_id_col, value, "must be unique"))
+
+        if issues:
+            raise PyspthinValidationError(issues)
+
+        record_ids = raw_record_ids.astype(str)
     else:
         candidate_column = next(
             (
                 column
-                for column in ("record_id", "OBS_ID", "obs_id", "ID", "id")
-                if column in df.columns and not df[column].isna().any() and not df[column].astype(str).duplicated().any()
+                for column in ("OBS_ID", "obs_id", "ID", "id")
+                if column in df.columns and _valid_auto_record_id_source(df[column])
             ),
             None,
         )
@@ -97,21 +167,18 @@ def _attach_record_id(df: pd.DataFrame, config: ThinConfig) -> tuple[pd.DataFram
                 dtype="string",
             )
 
-    if record_ids.isna().any():
-        raise ValueError("record_id values may not be missing.")
-    if record_ids.duplicated().any():
-        raise ValueError("record_id values must be unique.")
-
     df = df.copy()
-    df["record_id"] = record_ids.astype(str)
-    return df, "record_id"
+    df[PYSPTHIN_RECORD_ID_COL] = record_ids.astype(str)
+    return df.reset_index(drop=True), PYSPTHIN_RECORD_ID_COL
 
 
 def validate_single_species_data(data: Any, config: ThinConfig) -> ValidatedData:
     df, original_columns, warnings_list = _prepare_base_dataframe(data, config)
     unique_species = pd.unique(df[config.species_col])
     if len(unique_species) != 1:
-        raise ValueError("thin(...) accepts exactly one species. Use thin_many(...) for multi-species data.")
+        raise ValueError(
+            "thin(...) accepts exactly one species. Use thin_many(...) for multi-species data."
+        )
 
     df, record_id_col = _attach_record_id(df, config)
     return ValidatedData(

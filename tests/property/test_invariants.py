@@ -6,7 +6,6 @@ import unittest
 import pandas as pd
 
 from pyspthin import thin
-
 from tests.test_support import haversine_km
 
 
@@ -40,6 +39,22 @@ class InvariantTests(unittest.TestCase):
                 retained = rep.retained_dataframe
                 self.assertTrue(set(rep.retained_record_ids).issubset(original_ids))
                 self.assertTrue(set(data.columns).issubset(set(retained.columns)))
+                self.assertEqual(
+                    rep.retained_record_ids, retained["pyspthin_record_id"].astype(str).tolist()
+                )
+
+                generated_columns = set(retained.columns) - set(data.columns)
+                self.assertEqual(
+                    generated_columns,
+                    {
+                        "pyspthin_record_id",
+                        "pyspthin_replicate_id",
+                        "pyspthin_replicate_rank",
+                        "pyspthin_retained_count",
+                        "pyspthin_species",
+                    },
+                )
+                self.assertTrue(all(column.startswith("pyspthin_") for column in generated_columns))
 
                 coords = retained[["LONG", "LAT"]].to_records(index=False)
                 for idx, left in enumerate(coords):
@@ -52,4 +67,3 @@ class InvariantTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -38,5 +38,4 @@ def run_greedy_replicate(graph: ConflictGraph, seed: int) -> list[int]:
             if active[neighbor_index]:
                 degrees[neighbor_index] -= 1
 
-    return np.flatnonzero(active).astype(int).tolist()
-
+    return [int(index) for index in np.flatnonzero(active)]

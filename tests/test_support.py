@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_DIR = ROOT / "tests" / "fixtures"
 
@@ -34,4 +33,3 @@ def haversine_km(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
     a = sin_lat**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * sin_lon**2
     c = 2.0 * math.asin(min(1.0, math.sqrt(a)))
     return earth_radius_km * c
-

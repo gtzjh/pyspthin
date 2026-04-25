@@ -12,6 +12,5 @@
 Allowed implementation differences:
 
 - Python uses a sparse conflict graph instead of a dense distance matrix
-- Python preserves original input rows and extra columns via `record_id`
+- Python preserves original input rows and extra columns via `pyspthin_record_id`
 - parallel execution and structured result objects are explicit Python-side additions
-

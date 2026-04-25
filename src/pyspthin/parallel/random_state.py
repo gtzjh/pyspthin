@@ -9,5 +9,6 @@ def derive_child_seeds(master_seed: int, count: int, namespace: tuple[int, ...] 
     if count <= 0:
         return []
     seed_sequence = np.random.SeedSequence([master_seed, *namespace])
-    return [int(child.generate_state(1, dtype=np.uint32)[0]) for child in seed_sequence.spawn(count)]
-
+    return [
+        int(child.generate_state(1, dtype=np.uint32)[0]) for child in seed_sequence.spawn(count)
+    ]

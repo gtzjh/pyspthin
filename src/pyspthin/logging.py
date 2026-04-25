@@ -29,4 +29,3 @@ def write_log(path: Path, result: ThinResult) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(build_log_lines(result)) + "\n")
     return path
-

@@ -7,7 +7,8 @@
 - validates tabular occurrence input with Pydantic
 - works on longitude/latitude coordinates in kilometers
 - runs repeated spatial thinning replicates with reproducible random seeds
-- preserves original rows and extra columns through stable `record_id` handling
+- preserves original rows and extra columns without overwriting user columns
+- writes generated metadata columns with a `pyspthin_` prefix, including `pyspthin_record_id`
 - exposes `thin(...)`, `thin_many(...)`, `summary_thin(...)`, and `plot_thin(...)`
 
 ## Repository Layout
@@ -46,6 +47,8 @@ result = thin(data, thin_par=8.0, reps=4, seed=123)
 print(summary_thin(result))
 print(result.best_dataframe)
 ```
+
+Input validation is strict: required coordinates, species values, and explicit record IDs must be valid before the thinning algorithm runs. If `record_id_col` is supplied, it is used only as the source for `pyspthin_record_id`; the source column is preserved unchanged.
 
 ## Notes
 

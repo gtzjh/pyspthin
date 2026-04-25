@@ -6,6 +6,7 @@ from collections.abc import Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.figure import Figure
 
 from pyspthin.models import ThinResult
 
@@ -15,7 +16,7 @@ def plot_result(
     which: Sequence[int] = (1, 2, 3),
     shuffle_seed: int = 0,
     **kwargs: object,
-) -> plt.Figure:
+) -> Figure:
     selected = list(which)
     if not selected:
         raise ValueError("At least one plot index must be requested.")
@@ -48,4 +49,3 @@ def plot_result(
 
     figure.tight_layout()
     return figure
-

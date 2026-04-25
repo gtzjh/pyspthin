@@ -9,7 +9,6 @@ import matplotlib
 matplotlib.use("Agg")
 
 from pyspthin import plot_thin, summary_thin, thin, thin_many
-
 from tests.test_support import load_fixture
 
 
@@ -26,8 +25,54 @@ class ThinApiTests(unittest.TestCase):
         retained = result.best_replicate.retained_dataframe
         self.assertEqual(len(retained), 3)
         self.assertTrue(set(self.single.columns).issubset(set(retained.columns)))
-        self.assertIn("record_id", retained.columns)
-        self.assertEqual(retained["record_id"].nunique(), len(retained))
+        self.assertEqual(result.record_id_col, "pyspthin_record_id")
+        self.assertIn("pyspthin_record_id", retained.columns)
+        self.assertEqual(retained["pyspthin_record_id"].nunique(), len(retained))
+        self.assertEqual(
+            result.best_replicate.retained_record_ids,
+            retained["pyspthin_record_id"].astype(str).tolist(),
+        )
+        for generated_column in (
+            "record_id",
+            "replicate_id",
+            "replicate_rank",
+            "retained_count",
+            "species",
+        ):
+            self.assertNotIn(generated_column, retained.columns)
+
+    def test_generated_metadata_columns_use_pyspthin_prefix(self) -> None:
+        result = thin(self.single, thin_par=8.0, reps=4, seed=123)
+        retained = result.best_dataframe
+
+        for generated_column in (
+            "pyspthin_record_id",
+            "pyspthin_replicate_id",
+            "pyspthin_replicate_rank",
+            "pyspthin_retained_count",
+            "pyspthin_species",
+        ):
+            self.assertIn(generated_column, retained.columns)
+
+    def test_user_columns_with_legacy_metadata_names_are_preserved(self) -> None:
+        data = self.single.copy()
+        data["record_id"] = [f"user-record-{index}" for index in range(len(data))]
+        data["replicate_id"] = "user-replicate"
+        data["replicate_rank"] = "user-rank"
+        data["retained_count"] = "user-count"
+        data["species"] = "user-species"
+
+        result = thin(data, thin_par=8.0, reps=4, seed=123)
+        retained = result.best_dataframe
+
+        self.assertTrue(set(data.columns).issubset(set(retained.columns)))
+        self.assertTrue(retained["record_id"].str.startswith("user-record-").all())
+        self.assertEqual(set(retained["replicate_id"]), {"user-replicate"})
+        self.assertEqual(set(retained["replicate_rank"]), {"user-rank"})
+        self.assertEqual(set(retained["retained_count"]), {"user-count"})
+        self.assertEqual(set(retained["species"]), {"user-species"})
+        self.assertIn("pyspthin_record_id", retained.columns)
+        self.assertIn("pyspthin_species", retained.columns)
 
     def test_summary_and_plot_are_available(self) -> None:
         result = thin(self.single, thin_par=8.0, reps=4, seed=123)
@@ -35,7 +80,9 @@ class ThinApiTests(unittest.TestCase):
 
         self.assertEqual(summary.max_retained_count, 3)
         self.assertEqual(summary.n_max_replicates, 4)
-        self.assertEqual(summary.frequency_table.to_dict("records"), [{"retained_count": 3, "frequency": 4}])
+        self.assertEqual(
+            summary.frequency_table.to_dict("records"), [{"retained_count": 3, "frequency": 4}]
+        )
 
         figure = plot_thin(result)
         try:
@@ -56,8 +103,12 @@ class ThinApiTests(unittest.TestCase):
         )
 
     def test_thin_many_species_parallel_matches_serial(self) -> None:
-        serial = thin_many(self.multi, thin_par=8.0, reps=3, seed=999, n_jobs=1, parallel_mode="species")
-        parallel = thin_many(self.multi, thin_par=8.0, reps=3, seed=999, n_jobs=2, parallel_mode="species")
+        serial = thin_many(
+            self.multi, thin_par=8.0, reps=3, seed=999, n_jobs=1, parallel_mode="species"
+        )
+        parallel = thin_many(
+            self.multi, thin_par=8.0, reps=3, seed=999, n_jobs=2, parallel_mode="species"
+        )
 
         self.assertEqual(set(serial.species_results), {"sp1", "sp2"})
         self.assertEqual(set(parallel.species_results), {"sp1", "sp2"})
@@ -65,6 +116,28 @@ class ThinApiTests(unittest.TestCase):
             self.assertEqual(
                 [rep.retained_count for rep in serial.species_results[species].replicates],
                 [rep.retained_count for rep in parallel.species_results[species].replicates],
+            )
+
+    def test_thin_many_output_columns_match_between_parallel_modes(self) -> None:
+        rep_mode = thin_many(
+            self.multi, thin_par=8.0, reps=3, seed=999, n_jobs=1, parallel_mode="rep"
+        )
+        species_mode = thin_many(
+            self.multi,
+            thin_par=8.0,
+            reps=3,
+            seed=999,
+            n_jobs=1,
+            parallel_mode="species",
+        )
+
+        for species in ["sp1", "sp2"]:
+            rep_columns = list(rep_mode.species_results[species].best_dataframe.columns)
+            species_columns = list(species_mode.species_results[species].best_dataframe.columns)
+            self.assertEqual(rep_columns, species_columns)
+            self.assertEqual(rep_mode.species_results[species].record_id_col, "pyspthin_record_id")
+            self.assertEqual(
+                species_mode.species_results[species].record_id_col, "pyspthin_record_id"
             )
 
     def test_csv_and_log_outputs_are_written(self) -> None:
@@ -92,4 +165,3 @@ class ThinApiTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

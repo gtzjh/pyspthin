@@ -28,4 +28,3 @@ def summarize_result(result: ThinResult, show: bool = False) -> ThinSummary:
         print(summary.frequency_table.to_string(index=False))
 
     return summary
-

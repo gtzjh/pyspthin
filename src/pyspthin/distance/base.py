@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
-
+from numpy.typing import NDArray
 
 EARTH_RADIUS_KM = 6371.0088
 
@@ -18,7 +18,10 @@ def radians_to_chord_length(angle_radians: float) -> float:
     return 2.0 * math.sin(angle_radians / 2.0)
 
 
-def unit_vectors(longitudes_rad: np.ndarray, latitudes_rad: np.ndarray) -> np.ndarray:
+FloatArray = NDArray[np.float64]
+
+
+def unit_vectors(longitudes_rad: FloatArray, latitudes_rad: FloatArray) -> FloatArray:
     cos_lat = np.cos(latitudes_rad)
     return np.column_stack(
         (
@@ -27,4 +30,3 @@ def unit_vectors(longitudes_rad: np.ndarray, latitudes_rad: np.ndarray) -> np.nd
             np.sin(latitudes_rad),
         )
     )
-

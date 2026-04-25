@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 import multiprocessing as mp
+import warnings
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
-import warnings
 
 import pandas as pd
-
 
 SpeciesTask = tuple[str, pd.DataFrame, dict[str, Any]]
 
@@ -42,8 +41,10 @@ def run_species_tasks(tasks: list[SpeciesTask], n_jobs: int) -> dict[str, Any]:
             futures = [executor.submit(_species_task, task) for task in tasks]
             return dict(future.result() for future in futures)
     except Exception as exc:  # pragma: no cover - exercised only on platform-specific failures
-        warnings.warn(f"Falling back to threaded species execution because process parallelism failed: {exc}")
+        warnings.warn(
+            f"Falling back to threaded species execution because process parallelism failed: {exc}",
+            stacklevel=2,
+        )
         with ThreadPoolExecutor(max_workers=n_jobs) as executor:
             futures = [executor.submit(_species_task, task) for task in tasks]
             return dict(future.result() for future in futures)
-

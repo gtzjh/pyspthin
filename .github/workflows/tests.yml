@@ -16,6 +16,8 @@ jobs:
   test:
     name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    env:
+      MPLCONFIGDIR: ${{ runner.temp }}/matplotlib
 
     strategy:
       fail-fast: false
@@ -41,5 +43,128 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
 
+      - name: Run lint
+        run: python -m ruff check .
+
+      - name: Run type checks
+        run: python -m mypy
+
       - name: Run test suite
         run: python -m pytest -q
+
+      - name: Run coverage
+        run: python -m pytest --cov=pyspthin --cov-report=term-missing -q
+
+      - name: Run test suite in parallel
+        run: python -m pytest -q -n 2
+
+      - name: Run process-parallel smoke test
+        run: |
+          python - <<'PY'
+          import warnings
+
+          import pandas as pd
+
+          from pyspthin import thin, thin_many
+
+          warnings.filterwarnings(
+              "error",
+              message="Falling back to .* parallelism failed.*",
+          )
+
+          data = pd.DataFrame(
+              [
+                  {"SPEC": "sp1", "LONG": 0.00, "LAT": 0.00, "OBS_ID": "obs-1"},
+                  {"SPEC": "sp1", "LONG": 0.00, "LAT": 0.05, "OBS_ID": "obs-2"},
+                  {"SPEC": "sp1", "LONG": 0.00, "LAT": 0.10, "OBS_ID": "obs-3"},
+                  {"SPEC": "sp1", "LONG": 1.00, "LAT": 1.00, "OBS_ID": "obs-4"},
+                  {"SPEC": "sp2", "LONG": -10.00, "LAT": 5.00, "OBS_ID": "obs-5"},
+                  {"SPEC": "sp2", "LONG": -10.00, "LAT": 5.04, "OBS_ID": "obs-6"},
+                  {"SPEC": "sp2", "LONG": -10.00, "LAT": 5.10, "OBS_ID": "obs-7"},
+                  {"SPEC": "sp2", "LONG": -11.00, "LAT": 5.00, "OBS_ID": "obs-8"},
+              ]
+          )
+
+          single = data.loc[data["SPEC"] == "sp1"].reset_index(drop=True)
+
+          serial = thin(single, thin_par=8.0, reps=10, seed=77, n_jobs=1)
+          rep_parallel = thin(single, thin_par=8.0, reps=10, seed=77, n_jobs=2)
+          assert [rep.retained_count for rep in serial.replicates] == [
+              rep.retained_count for rep in rep_parallel.replicates
+          ]
+          assert [rep.retained_record_ids for rep in serial.replicates] == [
+              rep.retained_record_ids for rep in rep_parallel.replicates
+          ]
+
+          species_serial = thin_many(
+              data,
+              thin_par=8.0,
+              reps=5,
+              seed=999,
+              n_jobs=1,
+              parallel_mode="species",
+          )
+          species_parallel = thin_many(
+              data,
+              thin_par=8.0,
+              reps=5,
+              seed=999,
+              n_jobs=2,
+              parallel_mode="species",
+          )
+          for species in species_serial.species_results:
+              assert [
+                  rep.retained_count
+                  for rep in species_serial.species_results[species].replicates
+              ] == [
+                  rep.retained_count
+                  for rep in species_parallel.species_results[species].replicates
+              ]
+              assert [
+                  rep.retained_record_ids
+                  for rep in species_serial.species_results[species].replicates
+              ] == [
+                  rep.retained_record_ids
+                  for rep in species_parallel.species_results[species].replicates
+              ]
+
+          rep_mode_serial = thin_many(
+              data,
+              thin_par=8.0,
+              reps=5,
+              seed=999,
+              n_jobs=1,
+              parallel_mode="rep",
+          )
+          rep_mode_parallel = thin_many(
+              data,
+              thin_par=8.0,
+              reps=5,
+              seed=999,
+              n_jobs=2,
+              parallel_mode="rep",
+          )
+          for species in rep_mode_serial.species_results:
+              assert [
+                  rep.retained_count
+                  for rep in rep_mode_serial.species_results[species].replicates
+              ] == [
+                  rep.retained_count
+                  for rep in rep_mode_parallel.species_results[species].replicates
+              ]
+              assert [
+                  rep.retained_record_ids
+                  for rep in rep_mode_serial.species_results[species].replicates
+              ] == [
+                  rep.retained_record_ids
+                  for rep in rep_mode_parallel.species_results[species].replicates
+              ]
+
+          print("process parallel checks passed without fallback warnings")
+          PY
+
+      - name: Build package
+        run: python -m build
+
+      - name: Check package metadata
+        run: python -m twine check dist/*

@@ -8,7 +8,6 @@ import unittest
 from pathlib import Path
 
 from pyspthin import summary_thin, thin
-
 from tests.test_support import ROOT, load_fixture, load_reference
 
 
@@ -39,7 +38,9 @@ class RReferenceRegressionTests(unittest.TestCase):
         result = thin(data, thin_par=8.0, reps=4, seed=123)
         summary = summary_thin(result)
 
-        self.assertEqual([rep.retained_count for rep in result.replicates], reference["retained_counts"])
+        self.assertEqual(
+            [rep.retained_count for rep in result.replicates], reference["retained_counts"]
+        )
         self.assertEqual(summary.max_retained_count, reference["max_retained_count"])
         self.assertEqual(summary.n_max_replicates, reference["n_max_replicates"])
 

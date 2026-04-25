@@ -6,8 +6,14 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 
-from pyspthin.distance.base import EARTH_RADIUS_KM, kilometers_to_radians, radians_to_chord_length, unit_vectors
+from pyspthin.distance.base import (
+    EARTH_RADIUS_KM,
+    kilometers_to_radians,
+    radians_to_chord_length,
+    unit_vectors,
+)
 from pyspthin.distance.haversine import haversine_radians, to_radians
 from pyspthin.graph.guards import ensure_edge_limit, estimate_adjacency_bytes
 from pyspthin.models import ConflictGraphStats
@@ -17,8 +23,8 @@ from pyspthin.models import ConflictGraphStats
 class ConflictGraph:
     """Sparse adjacency representation of conflicts under the thinning threshold."""
 
-    adjacency: tuple[np.ndarray, ...]
-    initial_degrees: np.ndarray
+    adjacency: tuple[NDArray[np.int32], ...]
+    initial_degrees: NDArray[np.int32]
     node_count: int
     edge_count: int
     thin_par_km: float
@@ -68,7 +74,9 @@ def build_conflict_graph(
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
                 for dz in (-1, 0, 1):
-                    candidate_indices.extend(buckets.get((cell[0] + dx, cell[1] + dy, cell[2] + dz), ()))
+                    candidate_indices.extend(
+                        buckets.get((cell[0] + dx, cell[1] + dy, cell[2] + dz), ())
+                    )
 
         if candidate_indices:
             candidates = np.asarray(candidate_indices, dtype=np.int32)
@@ -87,7 +95,9 @@ def build_conflict_graph(
 
         buckets.setdefault(cell, []).append(index)
 
-    adjacency = tuple(np.asarray(sorted(neighbors), dtype=np.int32) for neighbors in adjacency_lists)
+    adjacency = tuple(
+        np.asarray(sorted(neighbors), dtype=np.int32) for neighbors in adjacency_lists
+    )
     degrees = np.asarray([len(neighbors) for neighbors in adjacency], dtype=np.int32)
     estimated_bytes = estimate_adjacency_bytes([len(neighbors) for neighbors in adjacency])
 
@@ -100,4 +110,3 @@ def build_conflict_graph(
         earth_radius_km=earth_radius_km,
         estimated_bytes=estimated_bytes,
     )
-

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from pathlib import Path
 import re
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
-import pandas as pd
+from matplotlib.figure import Figure
 
 from pyspthin.algorithm.runner import ReplicateExecution, sort_executions
 from pyspthin.config import ThinConfig, ThinManyConfig
@@ -15,17 +15,21 @@ from pyspthin.graph.conflict_graph import build_conflict_graph
 from pyspthin.io.csv_writer import write_best_replicates_to_csv
 from pyspthin.io.restore import restore_replicate_dataframe
 from pyspthin.logging import write_log
-from pyspthin.models import ReplicateResult, ThinManyResult, ThinResult
+from pyspthin.models import ReplicateResult, ThinManyResult, ThinResult, ThinSummary
 from pyspthin.parallel.random_state import derive_child_seeds
 from pyspthin.parallel.rep import run_replicates
 from pyspthin.parallel.species import SpeciesTask, run_species_tasks
 from pyspthin.plotting.plot import plot_result
 from pyspthin.plotting.summary import summarize_result
-from pyspthin.validate import ValidatedData, validate_multi_species_data, validate_single_species_data
+from pyspthin.validate import (
+    ValidatedData,
+    validate_multi_species_data,
+    validate_single_species_data,
+)
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _safe_species_name(value: str) -> str:
@@ -50,7 +54,7 @@ def _build_replicate_results(
                 replicate_id=execution.replicate_id,
                 replicate_rank=rank,
                 seed=execution.seed,
-                retained_record_ids=restored["record_id"].astype(str).tolist(),
+                retained_record_ids=restored[validated.record_id_col].astype(str).tolist(),
                 retained_count=execution.retained_count,
                 retained_dataframe=restored,
                 elapsed_seconds=execution.elapsed_seconds,
@@ -70,7 +74,9 @@ def _thin_impl(validated: ValidatedData, config: ThinConfig) -> ThinResult:
         max_conflict_edges=config.max_conflict_edges,
     )
 
-    seeds = derive_child_seeds(config.seed, config.reps, namespace=(graph.node_count, graph.edge_count))
+    seeds = derive_child_seeds(
+        config.seed, config.reps, namespace=(graph.node_count, graph.edge_count)
+    )
     executions = run_replicates(graph, seeds, config.n_jobs)
     replicate_results = _build_replicate_results(validated, executions)
     ended_at = _now()
@@ -120,35 +126,39 @@ def thin_many(data: Any, **kwargs: Any) -> ThinManyResult:
     if config.parallel_mode == "species":
         tasks: list[SpeciesTask] = []
         for index, (species_name, group_df) in enumerate(grouped):
+            safe_species_name = _safe_species_name(str(species_name))
             child_kwargs = config.model_dump(mode="python")
             child_kwargs.pop("parallel_mode", None)
             child_kwargs["seed"] = species_seeds[index]
             child_kwargs["n_jobs"] = 1
-            child_kwargs["record_id_col"] = "record_id"
+            child_kwargs["record_id_col"] = validated.record_id_col
             if config.write_csv and config.out_dir is not None:
-                child_kwargs["out_dir"] = Path(config.out_dir) / _safe_species_name(str(species_name))
+                child_kwargs["out_dir"] = Path(config.out_dir) / safe_species_name
             if config.write_log and config.log_file is not None:
                 log_path = Path(config.log_file)
                 child_kwargs["log_file"] = log_path.with_name(
-                    f"{log_path.stem}_{_safe_species_name(str(species_name))}{log_path.suffix or '.log'}"
+                    f"{log_path.stem}_{safe_species_name}{log_path.suffix or '.log'}"
                 )
             tasks.append((str(species_name), group_df.reset_index(drop=True), child_kwargs))
         species_results = run_species_tasks(tasks, config.n_jobs)
     else:
         species_results = {}
         for index, (species_name, group_df) in enumerate(grouped):
+            safe_species_name = _safe_species_name(str(species_name))
             child_kwargs = config.model_dump(mode="python")
             child_kwargs.pop("parallel_mode", None)
             child_kwargs["seed"] = species_seeds[index]
-            child_kwargs["record_id_col"] = "record_id"
+            child_kwargs["record_id_col"] = validated.record_id_col
             if config.write_csv and config.out_dir is not None:
-                child_kwargs["out_dir"] = Path(config.out_dir) / _safe_species_name(str(species_name))
+                child_kwargs["out_dir"] = Path(config.out_dir) / safe_species_name
             if config.write_log and config.log_file is not None:
                 log_path = Path(config.log_file)
                 child_kwargs["log_file"] = log_path.with_name(
-                    f"{log_path.stem}_{_safe_species_name(str(species_name))}{log_path.suffix or '.log'}"
+                    f"{log_path.stem}_{safe_species_name}{log_path.suffix or '.log'}"
                 )
-            species_results[str(species_name)] = thin(group_df.reset_index(drop=True), **child_kwargs)
+            species_results[str(species_name)] = thin(
+                group_df.reset_index(drop=True), **child_kwargs
+            )
 
     ended_at = _now()
     return ThinManyResult(
@@ -160,9 +170,13 @@ def thin_many(data: Any, **kwargs: Any) -> ThinManyResult:
     )
 
 
-def summary_thin(result: ThinResult, show: bool = False):
+def summary_thin(result: ThinResult, show: bool = False) -> ThinSummary:
     return summarize_result(result, show=show)
 
 
-def plot_thin(result: ThinResult, which: tuple[int, ...] = (1, 2, 3), **kwargs: Any):
+def plot_thin(
+    result: ThinResult,
+    which: tuple[int, ...] = (1, 2, 3),
+    **kwargs: Any,
+) -> Figure:
     return plot_result(result, which=which, **kwargs)

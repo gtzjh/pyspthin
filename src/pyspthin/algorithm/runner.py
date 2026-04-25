@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
 
 from pyspthin.algorithm.greedy import run_greedy_replicate
 from pyspthin.graph.conflict_graph import ConflictGraph
@@ -35,4 +35,3 @@ def execute_replicate(graph: ConflictGraph, seed: int, replicate_id: int) -> Rep
 
 def sort_executions(executions: list[ReplicateExecution]) -> list[ReplicateExecution]:
     return sorted(executions, key=lambda item: (-item.retained_count, item.replicate_id))
-

@@ -24,8 +24,10 @@ dependencies = [
 dev = [
   "build>=1.2",
   "mypy>=1.10",
+  "pandas-stubs>=2.2",
   "pytest>=8.2",
   "pytest-cov>=5.0",
+  "pytest-xdist>=3.8",
   "ruff>=0.4",
   "twine>=5.1",
 ]
@@ -38,6 +40,9 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+pyspthin = ["py.typed"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"

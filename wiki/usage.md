@@ -21,6 +21,14 @@ figure = plot_thin(result)
 best_rows = result.best_dataframe
 ```
 
+Generated columns in `best_rows` use the `pyspthin_` prefix:
+
+- `pyspthin_record_id`
+- `pyspthin_replicate_id`
+- `pyspthin_replicate_rank`
+- `pyspthin_retained_count`
+- `pyspthin_species`
+
 For multi-species input:
 
 ```python
@@ -41,5 +49,7 @@ Important behavior:
 
 - `thin(...)` accepts exactly one species
 - `thin_many(...)` is the multi-species entry point
-- if no explicit `record_id_col` is supplied, `pyspthin` generates a stable internal `record_id`
-
+- validation is strict; invalid required coordinates, species values, or explicit record IDs fail before thinning starts
+- `missing_policy` is not supported
+- if `record_id_col` is supplied, it is used only as the source for `pyspthin_record_id`
+- if no explicit `record_id_col` is supplied, `pyspthin` uses a unique `OBS_ID`, `obs_id`, `ID`, or `id` column when available, otherwise it generates stable `record-000000` values in `pyspthin_record_id`
