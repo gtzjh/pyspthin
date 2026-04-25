@@ -22,4 +22,4 @@ Breaking Python-side schema change:
 - generated output columns now use the `pyspthin_` prefix, for example `pyspthin_record_id` and `pyspthin_replicate_id`
 - invalid required data fails before thinning; implicit missing-value dropping and `missing_policy` are no longer supported
 
-The repository includes [run_r_reference.R](https://github.com/gtzjh/pyspthin/blob/main/spThin-R/scripts/run_r_reference.R) and [test_r_reference.py](https://github.com/gtzjh/pyspthin/blob/main/tests/regression/test_r_reference.py) to keep a small R reference path in the workflow.
+Compatibility is now exercised entirely through the Python regression and unit test suite.
