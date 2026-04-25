@@ -1,0 +1,59 @@
+name: Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "wiki/**"
+      - ".github/workflows/wiki.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Sync wiki pages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Validate wiki source
+        run: |
+          set -euo pipefail
+          test -d wiki
+          test -f wiki/Home.md
+          find wiki -type f -name "*.md" -print
+
+      - name: Clone GitHub Wiki repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki-repo
+
+      - name: Sync wiki content
+        run: |
+          set -euo pipefail
+
+          rsync -a --delete --exclude ".git/" wiki/ wiki-repo/
+
+          cd wiki-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Wiki is already up to date."
+            exit 0
+          fi
+
+          git add -A
+          git commit -m "Sync wiki from ${GITHUB_SHA}"
+          git push

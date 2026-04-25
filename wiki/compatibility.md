@@ -17,4 +17,4 @@ What is intentionally improved:
 - structured outputs instead of untyped lists and side-effect-only workflows
 - explicit `rep` and `species` parallel modes in Python
 
-The repository includes [run_r_reference.R](/Users/jarviski/workspace/spThin/spThin-R/scripts/run_r_reference.R) and [test_r_reference.py](/Users/jarviski/workspace/spThin/tests/regression/test_r_reference.py) to keep a small R reference path in the workflow.
+The repository includes [run_r_reference.R](https://github.com/gtzjh/pyspthin/blob/main/spThin-R/scripts/run_r_reference.R) and [test_r_reference.py](https://github.com/gtzjh/pyspthin/blob/main/tests/regression/test_r_reference.py) to keep a small R reference path in the workflow.

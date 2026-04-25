@@ -2,10 +2,10 @@
 
 Project layout:
 
-- package code: [src/pyspthin](/Users/jarviski/workspace/spThin/src/pyspthin)
-- unit/property/regression tests: [tests](/Users/jarviski/workspace/spThin/tests)
-- R reference script: [run_r_reference.R](/Users/jarviski/workspace/spThin/spThin-R/scripts/run_r_reference.R)
-- benchmark script: [benchmarks/run_benchmarks.py](/Users/jarviski/workspace/spThin/benchmarks/run_benchmarks.py)
+- package code: [src/pyspthin](https://github.com/gtzjh/pyspthin/tree/main/src/pyspthin)
+- unit/property/regression tests: [tests](https://github.com/gtzjh/pyspthin/tree/main/tests)
+- R reference script: [run_r_reference.R](https://github.com/gtzjh/pyspthin/blob/main/spThin-R/scripts/run_r_reference.R)
+- benchmark script: [benchmarks/run_benchmarks.py](https://github.com/gtzjh/pyspthin/blob/main/benchmarks/run_benchmarks.py)
 
 Recommended local commands:
 

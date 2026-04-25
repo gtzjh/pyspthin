@@ -15,7 +15,7 @@
 - `src/pyspthin/`: Python package
 - `main.py`: runnable example script
 - `tests/`: unit, regression, property, and failure-mode tests
-- `docs/`: usage and development notes
+- `wiki/`: source Markdown pages synced to the GitHub Wiki
 - `spThin-R/`: archived original R-package-related material and R reference tooling
 
 ## Quick Start
@@ -51,5 +51,4 @@ print(result.best_dataframe)
 
 - The archived R package content is now under `spThin-R/`.
 - The R reference script used by regression tests is at `spThin-R/scripts/run_r_reference.R`.
-- Development task breakdown is in `TASKS.md`.
-- Release and Git tag conventions are documented in `docs/release.md`.
+- Usage, development, compatibility, and release notes are maintained in `wiki/` and synced to the GitHub Wiki.
