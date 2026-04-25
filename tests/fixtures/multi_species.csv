@@ -1,0 +1,10 @@
+SPEC,LONG,LAT,OBS_ID,SOURCE,QUALITY
+sp1,0.00,0.00,obs-1,gbif,A
+sp1,0.00,0.05,obs-2,gbif,B
+sp1,0.00,0.10,obs-3,inat,C
+sp1,1.00,1.00,obs-4,gbif,D
+sp2,-10.00,5.00,obs-5,gbif,A
+sp2,-10.00,5.04,obs-6,gbif,B
+sp2,-10.00,5.10,obs-7,inat,C
+sp2,-11.00,5.00,obs-8,gbif,D
+

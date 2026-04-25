@@ -1,0 +1,38 @@
+.Rproj.user/
+.Rhistory
+.RData
+.RDataTmp
+.DS_Store
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Python build and packaging outputs
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Local environments
+.venv/
+venv/
+env/
+
+# Project runtime outputs
+pyspthin_output/
+pyspthin.log
+main_example_plot.png
+
+# Local backup of the previous repository metadata
+.git_backup_old/
+
+# R generated check/build outputs
+spThin-R/spThin.Rcheck/
