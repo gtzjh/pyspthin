@@ -29,7 +29,7 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://example.invalid/pyspthin"
+Repository = "https://github.com/gtzjh/pyspthin"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

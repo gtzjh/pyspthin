@@ -52,4 +52,4 @@ print(result.best_dataframe)
 - The archived R package content is now under `spThin-R/`.
 - The R reference script used by regression tests is at `spThin-R/scripts/run_r_reference.R`.
 - Development task breakdown is in `TASKS.md`.
-
+- Release and Git tag conventions are documented in `docs/release.md`.
