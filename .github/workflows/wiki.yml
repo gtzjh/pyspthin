@@ -37,7 +37,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki-repo
+          wiki_url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
+          if ! git clone "$wiki_url" wiki-repo; then
+            echo "::error::Could not clone the GitHub Wiki repository. Open the repository Wiki tab in GitHub and create the first page once, then rerun this workflow."
+            exit 1
+          fi
 
       - name: Sync wiki content
         run: |
