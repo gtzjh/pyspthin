@@ -1,6 +1,6 @@
 # pyspthin
 
-`pyspthin` is a Python reimplementation of `spThin` that keeps the original greedy thinning semantics while using a sparse conflict graph instead of a dense `N x N` distance matrix.
+`pyspthin` is a Python reimplementation of `spThin` in R.
 
 ## Quick Start
 
