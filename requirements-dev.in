@@ -1,9 +1,0 @@
--r requirements.in
-build>=1.2
-mypy>=1.10
-pandas-stubs>=2.2
-pytest>=8.2
-pytest-cov>=5.0
-pytest-xdist>=3.8
-ruff>=0.4
-twine>=5.1
